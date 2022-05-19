@@ -1,11 +1,9 @@
 from tkinter import *
+import statistics
 
 # ROOTS
 root = Tk()
 root.title('Rubik\'s cube timer')
-
-timerFrame = LabelFrame(root, bd=0)
-timerFrame.grid(row=3, column=0)
 
 optionsFrame = LabelFrame(root, text='Options')
 optionsFrame.grid(row=0, rowspan=10, column=1, sticky=N+S)
@@ -13,25 +11,18 @@ optionsFrame.grid(row=0, rowspan=10, column=1, sticky=N+S)
 scoresFrame = Canvas(optionsFrame, bg='white', bd=5, height=100, scrollregion=(0,0,0,120))
 scoresFrame.grid(row=4, columnspan=3, sticky=W+E)
 
-global font_timer
+# VARIABLES
 font_timer = ('Helvetica', 32)
-global font_button
 font_button = ('Helvetica', 20)
-global font_texts
 font_texts = ('Cambria', 12)
-global font_scores
 font_scores = ('Cambria', 10)
 
 times = []
 scores = []
-scoreLabelNumbers = []
-scoreLabels = []
-scoreDeleteButtons = []
-scoreLines = [] # (scoreLabelNumber, scoreLabel, scoreDeleteButton)
+deleteButtons = []
 
 restartVar = IntVar()
 restartVar.set(1)
-
 countdownVar = IntVar()
 
 # FUNCTIONS
@@ -49,83 +40,55 @@ def countdown(cdVar):
 
 def timer(min=0, sec=0, msec=0):
     startButton.config(state=DISABLED)
-
-    if min in range(0,10):
-        label_min['text'] = '0{}'.format(min)
-    else:
-        label_min['text'] = '{}'.format(min)
-
-    if sec in range(0,10):
-        label_sec['text'] = ':0{}'.format(sec)
-    else:
-        label_sec['text'] = ':{}'.format(sec)
-
-    if msec in range(0,10):
-        label_msec['text'] = ':00{}'.format(msec)
-    elif msec in range(10,100):
-        label_msec['text'] = ':0{}'.format(msec)
-    elif msec in range(100,1000):
-        label_msec['text'] = ':{}'.format(msec)
+    label_score['text'] = timesFormatChanger((min, sec, msec))
 
     if not stopButton['state'] == DISABLED:
     # timer will go until we click STOP
-        if msec >= 0 and msec < 1000:
+        if msec < 999:
             root.after(1, timer, min, sec, msec+1)
-            if msec == 999:
-                if sec < 59:
-                    root.after(10, timer, min, sec+1, 0)
-                elif sec == 59:
-                    root.after(1, timer, min+1, 0, 0)
+        elif msec == 999:
+            if sec < 59:
+                root.after(1, timer, min, sec+1)
+            elif sec == 59:
+                root.after(1, timer, min+1)
     else:
         startButton.config(state=NORMAL)
+        times.append((min, sec, msec))
         # after clicking STOP, time will be saved on list and showed on canvas
-        saveScore(min, sec, msec)
+        saveScore(timesFormatChanger((min, sec, msec)))
+        showScore()
 
-def timesFormatChange(index):
-    min = times[index][0]
-    if min < 10:
-        min = '0%d' % min
+def timesFormatChanger(timeTuple):
+    # changes format of score text to '{min}:{sec}.{msec}'
+    min = timeTuple[0]
+    sec = timeTuple[1]
+    msec = timeTuple[2]
+    if min in range (0,10):
+        min_score = '0%d' % min
+    else:
+        min_score = '%d' % min
 
-    sec = times[index][1]
-    if sec < 10:
-        sec = '0%d' % sec
+    if sec in range(0,10):
+        sec_score = ':0%d' % sec
+    else:
+        sec_score = ':%d' % sec
 
-    msec = times[index][2]
     if msec in range(0,10):
-        msec = '00%d' % msec
+        msec_score = '.00%d' % msec
     elif msec in range(10,100):
-        msec = '0%d' % msec
+        msec_score = '.0%d' % msec
+    elif msec in range(100,1000):
+        msec_score = '.%d' % msec
 
-    return (min, sec, msec)
+    return min_score + sec_score + msec_score
 
-def saveScore(min, sec, msec):
-    times.append((min, sec, msec))
-    min_score = timesFormatChange(-1)[0]
-    sec_score = timesFormatChange(-1)[1]
-    msec_score = timesFormatChange(-1)[2]
-
+def saveScore(score):
     # creating a score text and saving on list
-    score = '\t{}:{}:{}'.format(min_score, sec_score, msec_score)
     scores.append(score)
 
-    # creating a score label number
-    scoreLabelNumber = Label(scoresFrame, text=scores.index(score), font=font_scores)
-    scoreLabelNumbers.append(scoreLabelNumber)
-
-    # creating a score Label and saving on list
-    scoreLabel = Label(scoresFrame, text=score, bg='white', font=font_scores)
-    scoreLabels.append(scoreLabel)
-
-    # creating a delete button and saving on list
-    scoreDeleteButton = Button(scoresFrame, text='x', fg='red', bd=0, bg='white', 
-                                command=lambda: deleteScore(scoreLabels.index(scoreLabel)))
-    scoreDeleteButtons.append(scoreDeleteButton)
-
-    # scoreLines.append((scoreLabelNumber, scoreLabel, scoreDeleteButton))
-
-    showScore()
-
 def showScore():
+    # showing score on canvas
+
     def on_mouse_wheel(event=None):
     # mouse wheel scrolling on canvas
         def _scroll(e=None):
@@ -141,72 +104,103 @@ def showScore():
         shift_scroll = (event.state & 0x1) != 0
         scroll = -1 if event.delta > 0 else 1
         _scroll()
-
-    # showing score labels and delete button on canvas
-    for scoreLabel in scoreLabels:
-        rowNumber = (len(scoreLabels)-scoreLabels.index(scoreLabel))*20
-        # scoreLabelNumber = Label(scoresFrame, text='{}.'.format(scoreLabels.index(scoreLabel)+1), font=font_scores, bg='white')
-        # number = scoresFrame.create_window(50, rowNumber, window=scoreLabelNumber)
-        time = scoresFrame.create_window(100, rowNumber, window=scoreLabel)
-        button = scoresFrame.create_window(250, rowNumber, window=scoreDeleteButtons[scoreLabels.index(scoreLabel)])
-    scoreLines.append((time, button))
-    print(scoreLines)
-        # print(scoreLines)
     
-    # for scoreLine in scoreLines:
-    #     rowNumber = (len(scoreLines)-scoreLines.index(scoreLine))*20
-        
-    #     number = scoresFrame.create_window(50, rowNumber, window=scoreLine[0])
-    #     score = scoresFrame.create_window(100, rowNumber, window=scoreLine[1])
-    #     button = scoresFrame.create_window(250, rowNumber, window=scoreLine[2])
-
-    #     scoreLinesShowed.append((number, score, button))
+    n = 1 # number of line / score
+    for score in scores:
+        rowNumber = (len(scores)-scores.index(score))*20
+        numberLabel = Label(scoresFrame, text='{}.'.format(n), font=font_scores, bg='white')
+        scoreLabel = Label(scoresFrame, text=score, font=font_scores, bg='white')
+        buttonLabel = deleteButtonCreator(n)
+        scoresFrame.create_window(50, rowNumber, window=numberLabel)
+        scoresFrame.create_window(150, rowNumber, window=scoreLabel)
+        scoresFrame.create_window(250, rowNumber, window=buttonLabel)
+        print(n)
+        n += 1
 
     # showing a scrollbar on canvas
     if len(scores) == 5:
         v = Scrollbar(optionsFrame, orient=VERTICAL, command=scoresFrame.yview)
         v.grid(row=4, column=2, sticky=E+N+S)
         scoresFrame['yscrollcommand'] = v.set
-
     # increasing scrollregion on canvas after every new label
     scoresFrame['scrollregion'] = (0,0,0,20*len(scores))
-
     # mouse wheel scrolling on canvas
     scoresFrame.bind('<MouseWheel>', on_mouse_wheel)
+    # actualize best score
+    bestScoresActualize()
 
-    bestScore()
+def deleteButtonCreator(scoreIndex):
+    # creating delete button for each line
+    source = '''
+button{0}Label = Button(scoresFrame, text='x', bg='white', fg='red', bd=0, command=lambda: deleteScore({0}-1))
+deleteButtons.append(button{0}Label)
+'''.format(scoreIndex)
+    exec(source)
+    return deleteButtons[-1]
 
-def deleteScore(scoreNumber):
-    
-    time = scoreLines[scoreNumber][0]
-    button = scoreLines[scoreNumber][1]
-    
-    scoresFrame.delete(time)
-    scoresFrame.delete(button)
-
-    # scoreLabels[scoreNumber]['fg'] = 'gray'
-    # scoreDeleteButtons[scoreNumber].configure(fg='#D3D3D3', state=DISABLED)
-
-    times.remove(times[scoreNumber])
-    scores.remove(scores[scoreNumber])
-    scoreLabels.remove(scoreLabels[scoreNumber])
-    scoreDeleteButtons.remove(scoreDeleteButtons[scoreNumber])
-    scoreLines.remove(scoreLines[scoreNumber])
-    print(scoreLines)
-
+def deleteScore(scoreIndex):
+    # deleting score from canvas
+    times.remove(times[scoreIndex])
+    scores.remove(scores[scoreIndex])
+    scoresFrame.delete('all')
+    # showing scores again without deleted score
     showScore()
-    bestScore()
+    # actualize best scores
+    bestScoresActualize()
 
-def bestScore():
-    if len(times) > 0:
-        bestScore = min(times)
-        bestScoreIndex = times.index(bestScore)
-        min_best = timesFormatChange(bestScoreIndex)[0]
-        sec_best = timesFormatChange(bestScoreIndex)[1]
-        msec_best = timesFormatChange(bestScoreIndex)[2]
-        bestScoreLabel.config(text='{}:{}:{}'.format(min_best, sec_best, msec_best))
+def scoreChangeToMsec(score):
+    # changes score into amount of miliseconds - e.g. 00:01.000 = 1000 msec
+    result = score[0]*60000+score[1]*1000+score[2]
+    return result
+
+def scoreChangeToNormal(scoreInMsec):
+    scoreInMsec = int(round(scoreInMsec, 0))
+    if scoreInMsec >= 60000:
+        min = scoreInMsec // 60000
+        sec = (scoreInMsec - 60000) // 1000
+        msec = int(str(scoreInMsec)[-3:])
     else:
-        bestScoreLabel.config(text='00:00:000')
+        min = 0
+        sec = scoreInMsec // 1000
+        msec = int(str(scoreInMsec)[-3:])
+    return (min, sec, msec)
+
+def bestScoresActualize():
+    # actualizing best score and average scores
+    scoresInMsec = []
+
+    if len(times) > 0:
+        # best score
+        bestScore = min(times) # = (min, sec, msec)
+        bestScoreText = timesFormatChanger(bestScore)
+        bestScoreLabel.config(text=bestScoreText)
+        # average score
+        for score in times:
+            scoreInMsec=scoreChangeToMsec(score) # change score to amount of miliseconds
+            scoresInMsec.append(scoreInMsec)
+        avgScoreInMsec = statistics.mean(scoresInMsec)
+        avgScoreTuple = scoreChangeToNormal(avgScoreInMsec) # change score to format (min, sec, msec)
+        avgScore = timesFormatChanger(avgScoreTuple) # change score to format '{min}:{sec}.{msec}'
+        averageScoreLabel.config(text=avgScore)
+    else:
+        bestScoreLabel.config(text='--:--.---')
+        averageScoreLabel.config(text='--:--.---')
+
+    if len(times) >= 5:
+        avg5ScoreInMsec = statistics.mean(scoresInMsec[-5:])
+        avg5ScoreTuple = scoreChangeToNormal(avg5ScoreInMsec)
+        avg5Score = timesFormatChanger(avg5ScoreTuple)
+        average5ScoreLabel.config(text=avg5Score)
+    else:
+        average5ScoreLabel.config(text='--:--.---')
+
+    if len(times) >= 10:
+        avg10ScoreInMsec = statistics.mean(scoresInMsec[-10:])
+        avg10ScoreTuple = scoreChangeToNormal(avg10ScoreInMsec)
+        avg10Score = timesFormatChanger(avg10ScoreTuple)
+        average10ScoreLabel.config(text=avg10Score)
+    else:
+        average10ScoreLabel.config(text='--:--.---')
 
 def start_on_event(e):
     root.unbind('<space>')
@@ -246,11 +240,8 @@ def stop():
     restartButton.config(state=NORMAL)
 
 def restart():
-    label_min['text'] = '00'
-    label_sec['text'] = ':00'
-    label_msec['text'] = ':000'
+    label_score['text'] = '00:00.000'
     restartButton.config(state=DISABLED)
-
 
 def on_enter(e):
     e.widget['foreground'] = 'orange'
@@ -262,7 +253,6 @@ def on_leave(e):
 rubiksCubeImg = PhotoImage(file=r'D:\Dokumenty\KURSY\PYTHON\projekty\rubiks-cube-timer\img\rubiks_cube.png')
 rubiksCubeImg = rubiksCubeImg.subsample(2,2)
 
-
 # LABELS
 rubiksCubeImgLabel = Label(root, image=rubiksCubeImg, bd=2)
 rubiksCubeImgLabel.grid(row=0, column=0)
@@ -273,14 +263,8 @@ rubiksCubeImgLabel.grid(row=0, column=0)
 # scrambleLabel = Label(root, text='scramble')
 # scrambleLabel.grid(row=2, column=0)
 
-label_min = Label(timerFrame, text='00', font=font_timer)
-label_min.grid(row=0, column=0)
-
-label_sec = Label(timerFrame, text=':00', font=font_timer)
-label_sec.grid(row=0, column=1)
-
-label_msec = Label(timerFrame, text=':000', font=font_timer)
-label_msec.grid(row=0, column=2)
+label_score = Label(root, text='00:00.000', font=font_timer)
+label_score.grid(row=3)
 
 label_countdown = Label(root, text='', font=font_button)
 label_countdown.grid(row=4, column=0)
@@ -305,15 +289,26 @@ countdownOptionMenu = OptionMenu(optionsFrame, countdownVar, 0, 3, 5, 10, 15, 30
 countdownOptionMenu.grid(row=1, column=1, sticky=W+E)
 
 bestScoreLabelText = Label(optionsFrame, text='Best score:', font=font_texts)
-bestScoreLabelText.grid(row=5, column=0)
-
+bestScoreLabelText.grid(row=5, column=0, sticky=E)
 bestScoreLabel = Label(optionsFrame, font=font_texts)
 bestScoreLabel.grid(row=5, column=1, columnspan=2)
 
+averageScoreLabelText = Label(optionsFrame, text='Average score:', font=font_texts)
+averageScoreLabelText.grid(row=6, column=0, sticky=E)
+averageScoreLabel = Label(optionsFrame, font=font_texts)
+averageScoreLabel.grid(row=6, column=1, columnspan=2)
 
-### Score LABELS
-# scoreLabel = Label(scoresFrame, bg='white')
+average5ScoreLabelText = Label(optionsFrame, text='Average score (last 5):', font=font_texts)
+average5ScoreLabelText.grid(row=7, column=0, sticky=E)
+average5ScoreLabel = Label(optionsFrame, font=font_texts)
+average5ScoreLabel.grid(row=7, column=1, columnspan=2)
 
+average10ScoreLabelText = Label(optionsFrame, text='Average score (last 10):', font=font_texts)
+average10ScoreLabelText.grid(row=8, column=0, sticky=E)
+average10ScoreLabel = Label(optionsFrame, font=font_texts)
+average10ScoreLabel.grid(row=8, column=1, columnspan=2)
+
+### Score LABELS - created in showScore func
 
 # BUTTONS
 startButton = Button(root, text='START', font=font_button, command=start, bd=0, activeforeground='orange')
@@ -336,9 +331,7 @@ exitButton.grid(row=9, column=0)
 exitButton.bind('<Enter>', on_enter)
 exitButton.bind('<Leave>', on_leave)
 
-## Options BUTTONS
-# scoreDeleteButton = Button(scoresFrame, text='x', fg='red', bd=0, bg='white')
-
+## Options BUTTONS - created in deleteButtonCreator func
 
 root.bind('<space>', start_on_event)
 
