@@ -114,7 +114,7 @@ def showScore():
         scoresFrame.create_window(50, rowNumber, window=numberLabel)
         scoresFrame.create_window(150, rowNumber, window=scoreLabel)
         scoresFrame.create_window(250, rowNumber, window=buttonLabel)
-        print(n)
+        #print(n)
         n += 1
 
     # showing a scrollbar on canvas
