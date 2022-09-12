@@ -1,5 +1,6 @@
 from tkinter import *
 import statistics
+import os
 
 # ROOTS
 root = Tk()
@@ -12,6 +13,8 @@ scoresFrame = Canvas(optionsFrame, bg='white', bd=5, height=100, scrollregion=(0
 scoresFrame.grid(row=4, columnspan=3, sticky=W+E)
 
 # VARIABLES
+srcpath = os.getcwd()
+imagepath = srcpath + r'\img\rubiks_cube.png'
 font_timer = ('Helvetica', 32)
 font_button = ('Helvetica', 20)
 font_texts = ('Cambria', 12)
@@ -82,6 +85,23 @@ def timesFormatChanger(timeTuple):
 
     return min_score + sec_score + msec_score
 
+def scoreChangeToMsec(score):
+    # changes score into amount of miliseconds - e.g. 00:01.000 = 1000 msec
+    result = score[0]*60000+score[1]*1000+score[2]
+    return result
+
+def scoreChangeToNormal(scoreInMsec):
+    scoreInMsec = int(round(scoreInMsec, 0))
+    if scoreInMsec >= 60000:
+        min = scoreInMsec // 60000
+        sec = (scoreInMsec - 60000) // 1000
+        msec = int(str(scoreInMsec)[-3:])
+    else:
+        min = 0
+        sec = scoreInMsec // 1000
+        msec = int(str(scoreInMsec)[-3:])
+    return (min, sec, msec)
+
 def saveScore(score):
     # creating a score text and saving on list
     scores.append(score)
@@ -114,7 +134,10 @@ def showScore():
         scoresFrame.create_window(50, rowNumber, window=numberLabel)
         scoresFrame.create_window(150, rowNumber, window=scoreLabel)
         scoresFrame.create_window(250, rowNumber, window=buttonLabel)
+<<<<<<< HEAD
         #print(n)
+=======
+>>>>>>> a817795cc1f45e31f56a1c0b40cb72269d41c317
         n += 1
 
     # showing a scrollbar on canvas
@@ -148,22 +171,17 @@ def deleteScore(scoreIndex):
     # actualize best scores
     bestScoresActualize()
 
-def scoreChangeToMsec(score):
-    # changes score into amount of miliseconds - e.g. 00:01.000 = 1000 msec
-    result = score[0]*60000+score[1]*1000+score[2]
-    return result
-
-def scoreChangeToNormal(scoreInMsec):
-    scoreInMsec = int(round(scoreInMsec, 0))
-    if scoreInMsec >= 60000:
-        min = scoreInMsec // 60000
-        sec = (scoreInMsec - 60000) // 1000
-        msec = int(str(scoreInMsec)[-3:])
-    else:
-        min = 0
-        sec = scoreInMsec // 1000
-        msec = int(str(scoreInMsec)[-3:])
-    return (min, sec, msec)
+def resetScores():
+    # reseting all scores from scoresFrame
+    scoresFrame.delete('all')
+    times.clear()
+    scores.clear()
+    deleteButtons.clear()
+    bestScoreLabel.config(text='')
+    averageScoreLabel.config(text='')
+    average5ScoreLabel.config(text='')
+    average10ScoreLabel.config(text='')
+    restart()
 
 def bestScoresActualize():
     # actualizing best score and average scores
@@ -250,7 +268,7 @@ def on_leave(e):
     e.widget['foreground'] = 'black'
 
 # IMAGES
-rubiksCubeImg = PhotoImage(file=r'D:\Dokumenty\KURSY\PYTHON\projekty\rubiks-cube-timer\img\rubiks_cube.png')
+rubiksCubeImg = PhotoImage(file=imagepath)
 rubiksCubeImg = rubiksCubeImg.subsample(2,2)
 
 # LABELS
@@ -331,7 +349,10 @@ exitButton.grid(row=9, column=0)
 exitButton.bind('<Enter>', on_enter)
 exitButton.bind('<Leave>', on_leave)
 
-## Options BUTTONS - created in deleteButtonCreator func
+## Options BUTTONS - 
+# delete buttons created in deleteButtonCreator func
+resetButton = Button(optionsFrame, text='RESET\nSCORES', font=font_texts, command=resetScores)
+resetButton.grid(row=9, column=1, columnspan=2, sticky=W+E)
 
 root.bind('<space>', start_on_event)
 
